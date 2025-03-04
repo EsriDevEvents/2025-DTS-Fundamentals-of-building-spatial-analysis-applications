@@ -1,0 +1,252 @@
+<!--
+
+To run this demo, you need to replace 'YOUR_ACCESS_TOKEN' with an access token from ArcGIS that has the correct privileges.
+
+To get started, sign up for a free ArcGIS Location Platform account or a free trial of ArcGIS Online and create developer credentials.
+
+https://developers.arcgis.com/documentation/security-and-authentication/get-started/
+
+-->
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>Get length and area</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+      #measurements {
+        padding: 4px 8px;
+        font-size: 16px;
+        bottom: 15px;
+        left: 50%;
+        margin-right: -50%;
+        transform: translate(-50%, -50%);
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.31/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.31"></script>
+    <script src="config.js"></script>
+    <script>
+      require([
+        "esri/config",
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/widgets/ScaleBar",
+        "esri/widgets/Sketch",
+        "esri/Graphic",
+        "esri/layers/GraphicsLayer",
+        "esri/geometry/geometryEngine",
+      ], (
+        esriConfig,
+        Map,
+        MapView,
+        ScaleBar,
+        Sketch,
+        Graphic,
+        GraphicsLayer,
+        geometryEngine
+      ) => {
+        esriConfig.apiKey = access_token;
+
+        const map = new Map({
+          basemap: "arcgis/navigation", // Basemap styles service
+        });
+
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [-88.069255, 47.471155],
+          zoom: 5,
+          constraints: {
+            snapToZoom: false,
+          },
+        });
+
+        const scalebar = new ScaleBar({
+          view: view,
+          unit: "meters",
+        });
+
+        view.ui.add(scalebar, "bottom-right");
+
+        const graphicsLayerSketch = new GraphicsLayer();
+        map.add(graphicsLayerSketch);
+
+        const sketch = new Sketch({
+          layer: graphicsLayerSketch,
+          view: view,
+          creationMode: "update",
+          updateOnGraphicClick: true,
+          visibleElements: {
+            createTools: {
+              point: false,
+              circle: false,
+            },
+            selectionTools: {
+              "lasso-selection": false,
+              "rectangle-selection": false,
+            },
+            settingsMenu: false,
+            undoRedoMenu: false,
+          },
+        });
+
+        view.ui.add(sketch, "top-right");
+
+        const measurements = document.getElementById("measurements");
+        view.ui.add(measurements, "manual");
+
+        const polygon = {
+          type: "polygon",
+          rings: [
+            [-10252323.661920218, 5908295.743691475],
+            [-10144609.55712363, 6001596.691342044],
+            [-10058503.244760402, 6067972.695779166],
+            [-9956584.022170682, 6121741.367863505],
+            [-9934398.174710914, 6144323.732407501],
+            [-9922837.074182786, 6187735.187159202],
+            [-9879760.031429833, 6203471.660357408],
+            [-9898233.9057035, 6155703.294993454],
+            [-9878704.244976643, 6162014.127141247],
+            [-9848841.253488487, 6247637.930763425],
+            [-9829445.357561128, 6230635.469284246],
+            [-9856212.649403736, 6188652.431498623],
+            [-9852027.722105123, 6175146.96406349],
+            [-9809328.08717933, 6226249.894786385],
+            [-9824782.698835734, 6270162.967536206],
+            [-9804397.898854936, 6272499.074213172],
+            [-9703319.483576354, 6231452.390024044],
+            [-9621570.08182538, 6229813.77123018],
+            [-9555284.846359344, 6096994.879956186],
+            [-9508510.162363097, 6089914.900211274],
+            [-9442540.22963874, 6098533.175150425],
+            [-9461338.96128262, 6038066.708462599],
+            [-9414516.504143694, 5985153.175632199],
+            [-9437113.200630493, 5938841.891119931],
+            [-9387787.43081523, 5921533.681527611],
+            [-9396171.617355257, 5913192.490815993],
+            [-9409309.231591769, 5903188.794739173],
+            [-9412610.355750833, 5869322.413894582],
+            [-9411291.817012915, 5850198.824880489],
+            [-9468915.781711387, 5857842.5277090045],
+            [-9458620.66946423, 5907665.138208123],
+            [-9522364.373739783, 5887055.804456738],
+            [-9592141.825935593, 5889052.721820687],
+            [-9644276.656540338, 5850901.090077858],
+            [-9686393.45912546, 5864817.406540025],
+            [-9722638.942475427, 5862404.862834775],
+            [-9784524.271500796, 5928236.2534453655],
+            [-9850551.531996367, 5908959.790374703],
+            [-9824711.039121715, 5969091.845063781],
+            [-9764168.135405606, 6016177.054487437],
+            [-9817626.282062536, 6015981.184602456],
+            [-9917534.255345503, 5941842.044480123],
+            [-9976921.049008802, 5912676.540875068],
+            [-10058269.156361278, 5876913.566266151],
+            [-10116987.126027081, 5883420.268298925],
+            [-10100725.148259414, 5919675.306277428],
+            [-10115506.158604056, 5942100.019450585],
+            [-10186181.745882219, 5904359.23673479],
+            [-10239037.950941404, 5890051.180502662],
+            [-10252323.661920218, 5908295.743691475],
+          ],
+          spatialReference: {
+            wkid: 102100,
+          },
+        };
+        const polygonGraphic = new Graphic({
+          geometry: polygon,
+          symbol: {
+            type: "simple-fill",
+            outline: {
+              width: 1.5,
+            },
+          },
+        });
+
+        graphicsLayerSketch.add(polygonGraphic);
+
+        view.when(() => {
+          sketch.update(polygonGraphic);
+          getArea(polygonGraphic.geometry);
+        });
+
+        sketch.on(["update"], (e) => {
+          const geometry = e.graphics[0].geometry;
+
+          if (e.state === "start") {
+            switchType(geometry);
+          }
+
+          if (e.state === "complete") {
+            graphicsLayerSketch.remove(
+              graphicsLayerSketch.graphics.getItemAt(0)
+            );
+            measurements.innerHTML = null;
+          }
+
+          if (
+            e.toolEventInfo &&
+            (e.toolEventInfo.type === "scale-stop" ||
+              e.toolEventInfo.type === "reshape-stop" ||
+              e.toolEventInfo.type === "move-stop")
+          ) {
+            switchType(geometry);
+          }
+        });
+
+        function getArea(polygon) {
+          const area = geometryEngine.geodesicArea(
+            polygon,
+            "square-kilometers"
+          );
+          measurements.innerHTML =
+            "The area of the polygon is  " +
+            area.toFixed(2) +
+            "  square kilometers.";
+        }
+
+        function getLength(line) {
+          const length = geometryEngine.geodesicLength(line, "kilometers");
+          measurements.innerHTML =
+            "The length of the line is  " + length.toFixed(2) + "  kilometers.";
+        }
+
+        function switchType(geom) {
+          switch (geom.type) {
+            case "polygon":
+              getArea(geom);
+              break;
+            case "polyline":
+              getLength(geom);
+              break;
+            default:
+              console.log("No value found");
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv">
+      <div
+        id="measurements"
+        class="esri-widget"
+      ></div>
+    </div>
+  </body>
+</html>

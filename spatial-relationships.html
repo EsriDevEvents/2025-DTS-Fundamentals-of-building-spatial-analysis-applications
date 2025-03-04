@@ -1,0 +1,526 @@
+<!--
+
+To run this demo, you need to replace 'YOUR_ACCESS_TOKEN' with an access token from ArcGIS that has the correct privileges.
+
+To get started, sign up for a free ArcGIS Location Platform account or a free trial of ArcGIS Online and create developer credentials.
+
+https://developers.arcgis.com/documentation/security-and-authentication/get-started/
+
+-->
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <title>
+      ArcGIS Developer guide: Geometry Analysis - Spatial Relationships
+    </title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+
+      .title {
+        margin-bottom: 7px;
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      #relationshipResults {
+        width: 200px;
+        background-color: "white";
+        height: calc(100% - 15px);
+        padding: 15px;
+      }
+
+      #relationshipResults > span {
+        display: flex;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 3px;
+        width: 100%;
+      }
+
+      .point {
+        width: 11px;
+        height: 11px;
+        display: inline-block;
+        vertical-align: baseline;
+        border-radius: 100%;
+      }
+
+      .polyline {
+        width: 25px;
+        height: 1px;
+        display: inline-block;
+        vertical-align: baseline;
+        margin-bottom: 3px;
+      }
+
+      .polyline.dashed {
+        border: 0;
+      }
+
+      .polyline.dashed::after {
+        content: "- - -";
+        font-weight: 800;
+      }
+
+      .polyline.solid {
+        height: 7px;
+        border: 0px;
+        background: linear-gradient(
+          to top,
+          transparent 0%,
+          transparent calc(50% - 0.81px),
+          black calc(50% - 0.8px),
+          black calc(50% + 0.8px),
+          transparent calc(50% + 0.81px),
+          transparent 100%
+        );
+      }
+
+      .polygon {
+        width: 15px;
+        height: 11px;
+        display: inline-block;
+        vertical-align: baseline;
+      }
+
+      .solid {
+        margin-right: 4px;
+        border: 1px solid black;
+      }
+
+      .dashed {
+        margin-left: 4px;
+        border: 1px dashed black;
+      }
+
+      .point.dashed {
+        width: 11px;
+        height: 11px;
+        display: inline-block;
+        vertical-align: baseline;
+        border-radius: 0;
+        border-style: solid;
+      }
+
+      .na {
+        opacity: 0.4;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.32"></script>
+    <script src="config.js"></script>
+
+    <script>
+      require([
+        "esri/config",
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/Graphic",
+        "esri/geometry/support/webMercatorUtils",
+        "esri/layers/GraphicsLayer",
+        "esri/widgets/Sketch",
+        "esri/geometry/geometryEngine",
+      ], (
+        esriConfig,
+        Map,
+        MapView,
+        Graphic,
+        webMercatorUtils,
+        GraphicsLayer,
+        Sketch,
+        geometryEngine
+      ) => {
+        esriConfig.apiKey = access_token;
+
+        let geometry1, geometry2;
+
+        // List of spatial relationship operations and applicable operations
+        const operations = {
+          intersects: {
+            notApplicableOperations: [],
+          },
+          overlaps: {
+            notApplicableOperations: [
+              "point-polyline",
+              "point-polygon",
+              "polyline-point",
+              "polyline-polygon",
+              "polygon-point",
+              "polygon-polyline",
+            ],
+          },
+          crosses: {
+            notApplicableOperations: [],
+          },
+          equals: {
+            notApplicableOperations: [],
+          },
+          contains: {
+            notApplicableOperations: [
+              "point-polyline",
+              "point-polygon",
+              "polyline-polygon",
+            ],
+          },
+          disjoint: {
+            notApplicableOperations: [],
+          },
+          within: {
+            notApplicableOperations: [
+              "polyline-point",
+              "polygon-point",
+              "polygon-polyline",
+            ],
+          },
+          touches: {
+            notApplicableOperations: ["point-point"],
+          },
+        };
+
+        // All symbols we will use to differentiate the geometries
+        const geometrySymbols = {
+          point: {
+            dashed: {
+              type: "simple-marker",
+              style: "square",
+              color: [150, 130, 220, 0.5],
+            },
+            solid: {
+              type: "simple-marker",
+              style: "circle",
+              color: [150, 130, 220, 0.5],
+            },
+          },
+          polyline: {
+            dashed: {
+              color: [50, 50, 50],
+              width: 1,
+              type: "simple-line",
+              style: "short-dash",
+            },
+            solid: {
+              type: "simple-line",
+              color: [50, 50, 50],
+            },
+          },
+          polygon: {
+            dashed: {
+              type: "simple-fill",
+              color: [150, 130, 220, 0.5],
+              outline: {
+                color: [50, 50, 50],
+                width: 1,
+                type: "simple-line",
+                style: "short-dash",
+              },
+            },
+            solid: {
+              type: "simple-fill",
+              color: [150, 130, 220, 0.5],
+              outline: {
+                color: [50, 50, 50],
+                width: 1,
+                type: "simple-line",
+              },
+            },
+          },
+        };
+
+        const map = new Map({
+          basemap: "arcgis/topographic", //Basemap styles service
+        });
+
+        const view = new MapView({
+          map: map,
+          center: [55.003527, 24.999268], //Longitude, latitude
+          zoom: 11,
+          container: "viewDiv",
+          constraints: {
+            maxZoom: 13,
+            minZoom: 11,
+          },
+        });
+
+        const graphicsLayer = new GraphicsLayer();
+        map.add(graphicsLayer);
+
+        // Create a line geometry
+        defaultPolygonGeometry = webMercatorUtils.geographicToWebMercator({
+          type: "polygon",
+          rings: [
+            [
+              ["54.933069", "25.049213"],
+              ["55.045543", "25.049213"],
+              ["55.045543", "24.961326"],
+              ["54.933069", "24.961326"],
+              ["54.933069", "25.049213"],
+            ],
+          ],
+          spatialReference: {
+            wkid: 4326,
+          },
+        });
+
+        const defaultPolygon = new Graphic({
+          geometry: defaultPolygonGeometry,
+          symbol: geometrySymbols.polygon.solid,
+          attributes: {
+            style: "solid",
+          },
+        });
+        graphicsLayer.add(defaultPolygon);
+
+        // Create a polygon geometry
+        const polylineGeometry = webMercatorUtils.geographicToWebMercator({
+          type: "polyline",
+          paths: [
+            [
+              ["55.070", "25.028638"],
+              ["55.035", "25.006672"],
+              ["55.070", "24.977755"],
+            ],
+          ],
+          spatialReference: {
+            wkid: 4326,
+          },
+        });
+
+        const defaultPolyline = new Graphic({
+          geometry: polylineGeometry,
+          symbol: geometrySymbols.polyline.dashed,
+          attributes: {
+            style: "dashed", // Used to alternate Graphic styles
+          },
+        });
+
+        graphicsLayer.add(defaultPolyline);
+
+        // Create a new instance of sketchViewModel
+        const sketch = new Sketch({
+          view: view,
+          layer: graphicsLayer,
+          updateOnGraphicClick: true,
+          snappingOptions: {
+            enabled: true,
+            featureSources: [
+              {
+                layer: graphicsLayer,
+              },
+            ],
+          },
+          visibleElements: {
+            selectionTools: {
+              "lasso-selection": false,
+              "rectangle-selection": false,
+            },
+            settingsMenu: false,
+            undoRedoMenu: false,
+          },
+        });
+
+        const dragOutlineSymbol = {
+          style: "solid",
+          color: [0, 0, 0, 1],
+          width: "0.25px",
+        };
+
+        sketch.viewModel.watch("activeTool", (tool) => {
+          // Remove default box outline (orange) in the active geometry
+          if (tool === "transform") {
+            sketch.viewModel.activeComponent._backgroundGraphic.symbol.outline =
+              dragOutlineSymbol;
+          }
+        });
+
+        view.ui.add(sketch, "top-right");
+        const relationshipDiv = document.getElementById("relationshipResults");
+
+        view.ui.add(relationshipDiv, "bottom-right");
+        let selectedGraphics = [defaultPolygon, defaultPolyline];
+
+        view.when(() => {
+          sketch.update(defaultPolyline).then(onGraphicUpdate);
+        });
+
+        const getGraphicsProps = (prop) => [
+          selectedGraphics[0][prop],
+          selectedGraphics[1][prop],
+        ];
+
+        const removeThirdGeometry = (state, tool) => {
+          const numGraphics = selectedGraphics.length;
+          if (tool === "point" && numGraphics === 3) {
+            const arrVal = selectedGraphics.shift();
+            graphicsLayer.remove(arrVal);
+          } else if (state === "start" && numGraphics === 2) {
+            const arrVal = selectedGraphics.shift();
+            graphicsLayer.remove(arrVal);
+          }
+        };
+
+        sketch.on("create", (event) => {
+          selectedGraphics = graphicsLayer.graphics.toArray();
+
+          if (["start", "complete"].indexOf(event.state) !== -1) {
+            removeThirdGeometry(event.state, event.tool);
+          }
+          if (event.state === "complete") {
+            if (
+              selectedGraphics[0].attributes &&
+              selectedGraphics[0].attributes.style === "solid"
+            ) {
+              event.graphic.attributes = {
+                style: "dashed",
+              };
+            } else {
+              event.graphic.attributes = {
+                style: "solid",
+              };
+            }
+
+            if (
+              selectedGraphics[0].attributes.style === "solid" &&
+              selectedGraphics.length > 1
+            ) {
+              event.graphic.symbol =
+                geometrySymbols[event.graphic.geometry.type].dashed;
+            } else {
+              event.graphic.symbol =
+                geometrySymbols[event.graphic.geometry.type].solid;
+            }
+
+            sketch.update(event.graphic);
+
+            onGraphicUpdate(event);
+          }
+        });
+
+        sketch.on(["update", "undo", "redo"], onGraphicUpdate);
+
+        function onGraphicUpdate(event) {
+          if (event && event.tool === "transform" && event.state === "active") {
+            // Remove default box outline (orange) while dragging geometry
+            sketch.viewModel.activeComponent._backgroundGraphic.symbol.outline =
+              dragOutlineSymbol;
+          }
+          const selectedGraphics = graphicsLayer.graphics.toArray();
+
+          if (selectedGraphics.length === 2) {
+            [geometry1, geometry2] = getGraphicsProps("geometry");
+            [attr1, attr2] = getGraphicsProps("attributes");
+            const graphics = [
+              {
+                geometry: geometry1,
+                attributes: attr1,
+              },
+              {
+                geometry: geometry2,
+                attributes: attr2,
+              },
+            ];
+
+            for (var operation in operations) {
+              const notApplicableOperations =
+                operations[operation].notApplicableOperations;
+
+              if (
+                notApplicableOperations.indexOf(
+                  `${geometry1.type}-${geometry2.type}`
+                ) === -1
+              ) {
+                // If the permited
+                const result = geometryEngine[operation](geometry1, geometry2);
+                document.getElementById(operation).innerHTML = formatStr(
+                  result,
+                  operation,
+                  graphics
+                );
+              } else {
+                document.getElementById(operation).innerHTML = formatStr(
+                  "n.a.",
+                  operation,
+                  graphics
+                );
+              }
+            }
+          } else {
+            const selectedGraphics = graphicsLayer.graphics.toArray();
+            const numGraphics = selectedGraphics.length;
+
+            for (var operation in operations) {
+              document.getElementById(operation).innerHTML = formatStr(
+                -1,
+                operation,
+                selectedGraphics
+              );
+            }
+          }
+        }
+
+        function formatStr(result, operation, selectedGraphics) {
+          const numGraphics = selectedGraphics.length;
+
+          let str = null;
+
+          if (numGraphics > 0) {
+            const style1 = selectedGraphics[0].attributes.style;
+            const type1 = selectedGraphics[0].geometry.type;
+
+            if (numGraphics === 2) {
+              const style2 = selectedGraphics[1].attributes.style;
+              const type2 = selectedGraphics[1].geometry.type;
+
+              if (result === true) {
+                str = `<i class="${type1} ${style1}"></i> <b>${operation} </b> <i class="${type2} ${style2}"></i> <b>${result}</b>`;
+              } else if (result === false) {
+                str = `<i class="${type1} ${style1}"></i> ${operation}  <i class="${type2} ${style2}"></i>  ${result}`;
+              } else {
+                str = `<span class="na"><i class="${type1} ${style1}"></i> ${operation}  <i class="${type2} ${style2}"></i>  n.a.</span>`;
+              }
+            } else if (numGraphics === 1) {
+              str = `<i class="${type1} ${style1}"></i> ${operation} `;
+            }
+          } else {
+            str = ` ${operation} `;
+          }
+
+          return str;
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <div
+      id="relationshipResults"
+      class="esri-widget"
+    >
+      <div class="title">Spatial relationship</div>
+      <span id="contains"></span>
+      <span id="crosses"></span>
+      <span id="disjoint"></span>
+      <span id="equals"></span>
+      <span id="intersects"></span>
+      <span id="overlaps"></span>
+      <span id="within"></span>
+      <span id="touches"></span>
+    </div>
+  </body>
+</html>

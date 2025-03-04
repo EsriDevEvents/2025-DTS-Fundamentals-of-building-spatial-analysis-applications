@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>ArcGIS Developer guide: Geometry Analysis - Projection</title>
+
+    <style>
+      html,
+      body,
+      #mapDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        background-color: #fff;
+      }
+      #sceneDiv {
+        width: 250px;
+        height: 200px;
+      }
+      #wkid {
+        font-family: "Avenir Next";
+        font-size: 1em;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.32"></script>
+    <script src="config.js"></script>
+
+    <script>
+      require([
+        "esri/config",
+        "esri/views/MapView",
+        "esri/views/SceneView",
+        "esri/geometry/Point",
+        "esri/geometry/SpatialReference",
+        "esri/layers/GeoJSONLayer",
+        "esri/geometry/geometryEngine",
+        "esri/geometry/projection",
+      ], (
+        esriConfig,
+        MapView,
+        SceneView,
+        Point,
+        SpatialReference,
+        GeoJSONLayer,
+        geometryEngine,
+        projectionEngine
+      ) => {
+        esriConfig.apiKey = access_token;
+
+        let spatialReference;
+        let view2D;
+
+        // All app colors
+        const black = [0, 0, 0];
+        const white = [255, 255, 255];
+        const purple = [150, 130, 220];
+        const mildPurple = [100, 70, 170];
+        const graphite = [50, 50, 50];
+        const red = [255, 0, 0];
+
+        function addAlpha(color, alpha) {
+          return [...color, alpha];
+        }
+
+        // Symbols and renderers constants
+        const countriesRenderer = {
+          type: "simple",
+          symbol: {
+            type: "simple-fill",
+            color: addAlpha(white, 1),
+            outline: {
+              width: 0.5,
+              color: addAlpha(mildPurple, 0.75),
+            },
+          },
+        };
+
+        const projectionBoundary = {
+          symbol: {
+            type: "simple-fill",
+            color: null,
+            outline: {
+              width: 0.5,
+              color: addAlpha(graphite, 0.75),
+              style: "dash",
+            },
+          },
+          geometry: {
+            type: "extent",
+            xmin: -180,
+            xmax: 180,
+            ymin: -90,
+            ymax: 90,
+            spatialReference: SpatialReference.WGS84,
+          },
+        };
+
+        const bufferSym = {
+          type: "simple-fill", // autocasts as new SimpleFillSymbol()
+          color: addAlpha(purple, 0.85),
+          outline: {
+            color: addAlpha(black, 0.5),
+            width: 0.5,
+          },
+        };
+
+        const pointSym = {
+          type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
+          color: red,
+          outline: {
+            color: white,
+            width: 0.5,
+          },
+          size: 5,
+        };
+
+        // Spatial reference select
+        const wkidSelect = document.getElementById("wkid");
+
+        // Set spatial reference
+        spatialReference = getSpatialReference(wkidSelect.value);
+
+        // Update spatial reference
+        wkidSelect.addEventListener("change", (event) => {
+          spatialReference = getSpatialReference(event.target.value);
+          createViewWithSpatialReference();
+        });
+
+        // Center for the map
+        let center = {
+          latitude: 30,
+          longitude: -10,
+          spatialReference: {
+            wkid: 4326,
+          },
+        };
+
+        const view3D = new SceneView({
+          container: "sceneDiv",
+          map: {
+            basemap: "arcgis/imagery",
+          },
+
+          camera: {
+            position: {
+              x: center.longitude,
+              y: center.latitude,
+              z: 15294210, // elevation in meters
+            },
+            heading: 0,
+          },
+
+          environment: {
+            atmosphereEnabled: false,
+            lighting: {
+              directShadowsEnabled: false,
+              date: new Date("null"),
+            },
+            background: {
+              type: "color",
+              color: white,
+            },
+            starsEnabled: false,
+          },
+
+          ui: {
+            components: [],
+          },
+        });
+
+        // Display the layers when the app loads
+        createViewWithSpatialReference();
+
+        // Create view with spatial reference
+        async function createViewWithSpatialReference() {
+          // Load the projection engine
+          await projectionEngine.load();
+
+          // Project the center point
+          center = projectionEngine.project(
+            new Point(center),
+            spatialReference
+          );
+
+          // Destroy old view
+          if (view2D) {
+            view2D.map = null;
+            view2D.destroy();
+          }
+
+          // Create new view with spatial reference
+          view2D = new MapView({
+            container: "mapDiv",
+            map: {
+              layers: [
+                new GeoJSONLayer({
+                  url: "https://developers.arcgis.com/documentation//data/countries.geojson",
+                  copyright: "Esri",
+                  spatialReference: {
+                    wkid: 4326,
+                  },
+                  renderer: countriesRenderer,
+                }),
+              ],
+            },
+            spatialReference: spatialReference,
+            center: center,
+            scale: 150000000,
+          });
+
+          // Add gray boundary over the 2D projection
+          view2D.graphics.add(projectionBoundary);
+
+          view2D.ui.add(wkidSelect, "top-right");
+          view2D.ui.add(view3D.container, "bottom-right");
+
+          view2D.on("pointer-move", (event) => {
+            createBuffer(event, view2D);
+          });
+
+          view3D.on("pointer-move", (event) => {
+            createBuffer(event, view3D);
+          });
+
+          view2D.on("click", (event) => {
+            bufferPoint(event.mapPoint);
+          });
+
+          view3D.on("click", (event) => {
+            bufferPoint(event.mapPoint);
+          });
+
+          function createBuffer(event, view) {
+            event.stopPropagation();
+
+            let point = view.toMap({
+              x: event.x,
+              y: event.y,
+            });
+
+            if (point) {
+              bufferPoint(point, view);
+            }
+          }
+
+          function bufferPoint(point, view) {
+            if ([3857, 4326].indexOf(point.spatialReference.wkid) === -1) {
+              point = projectionEngine.project(
+                point,
+                getSpatialReference(4326)
+              );
+              if (!point) {
+                // console.warn("We couldn't project -> ", {point})
+                return;
+              }
+            }
+
+            point.hasZ = false;
+            point.z = undefined;
+
+            const buffer = geometryEngine.geodesicBuffer(
+              point,
+              1000,
+              "kilometers"
+            );
+
+            if (point && buffer) {
+              // Avoid removing the map projection boundary
+              view2D.graphics.removeMany([
+                view2D.graphics.getItemAt(1),
+                view2D.graphics.getItemAt(2),
+              ]);
+
+              view3D.graphics.removeAll();
+
+              const bufferGraphic = {
+                geometry: buffer,
+                symbol: bufferSym,
+              };
+
+              view2D.graphics.addMany([
+                bufferGraphic,
+                {
+                  geometry: point,
+                  symbol: pointSym,
+                },
+              ]);
+
+              view3D.graphics.addMany([
+                {
+                  geometry: point,
+                  symbol: {
+                    ...pointSym,
+                    size: 4,
+                  },
+                },
+                bufferGraphic,
+              ]);
+
+              if (view && view.type === "2d") {
+                //zoom 3D
+                view3D.goTo({
+                  position: {
+                    x: point.longitude,
+                    y: point.latitude,
+                    z: 15294210, // elevation in meters
+                  },
+                  heading: 0,
+                });
+              }
+            }
+          }
+        }
+
+        function getSpatialReference(wkid) {
+          return new SpatialReference({
+            wkid: wkid,
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="mapDiv"></div>
+    <div id="sceneDiv"></div>
+    <select
+      id="wkid"
+      class="esri-widget esri-select"
+    >
+      <option
+        value="3857"
+        disabled
+      >
+        Select a projection
+      </option>
+      <optgroup label="Equidistant: maintains length">
+        <option
+          value="4326"
+          selected
+        >
+          WGS84 (GCS) -> pseudo Plate Carrée (Cylindrical)
+        </option>
+        <option value="54028">World Cassini (Cylindrical)</option>
+        <option value="54027">World Equidistant conic (Conic)</option>
+      </optgroup>
+      <optgroup label="Conformal: maintains angles">
+        <option value="54026">World Stereographic (Azimuthal)</option>
+      </optgroup>
+      <optgroup label="Equal-area: maintains area">
+        <option value="54010">World Eckert VI (Pseudocylindrical)</option>
+        <option value="54008">World Sinusoidal (Pseudocylindrical)</option>
+      </optgroup>
+      <optgroup label="Gnomonic: maintains distances">
+        <option value="102034">North Pole Gnomonic (Azimuthal)</option>
+      </optgroup>
+      <optgroup label="Compromise: distorts all">
+        <option value="3857">
+          Web Mercator Auxiliary Sphere (Cylindrical)
+        </option>
+        <option value="54016">World Gall Stereographic (Cylindrical)</option>
+        <option value="54042">Wolrd Winkel Tripel (Pseudoazimuthal)</option>
+        <option value="54050">World Fuller / Dymaxion map (Polyhedral)</option>
+      </optgroup>
+    </select>
+  </body>
+</html>
