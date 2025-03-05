@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+  <head>
+    <title>OAuth 2.0 callback</title>
+    <script src="https://unpkg.com/@esri/arcgis-rest-request@4/dist/bundled/request.umd.js"></script>
+  </head>
+  <body>
+    <script src="config.js"></script>
+    <script>
+
+      // Your client ID from OAuth credentials
+      const clientId = CLIENT_ID;
+      // The redirect URL registered in your OAuth credentials
+      const redirectUri = REDIRECT_URL;
+
+      arcgisRest.ArcGISIdentityManager.completeOAuth2({
+          clientId,
+          redirectUri
+      })
+    </script>
+  </body>
+</html

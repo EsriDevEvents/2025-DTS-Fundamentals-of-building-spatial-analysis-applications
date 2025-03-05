@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Feature analysis (MapLibre GL JS)</title>
+
+    <script src="config.js"></script>
+
+    <!-- Calcite -->
+    <script type="module" src="https://js.arcgis.com/calcite-components/3.0.3/calcite.esm.js"></script>
+
+    <!-- MapLibre GL JS-->
+    <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" rel="stylesheet" />
+
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      calcite-button {
+        margin: 5px;
+      }
+
+      .app-wrapper {
+        background-color: #ccc;
+        width: 100%;
+        height: 100%;
+      }
+
+      .app-container {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        height: 100%;
+      }
+
+      .map-container {
+        width: 75%;
+      }
+
+      .cntrl-container {
+        width: 25%;
+        background-color: #efefef;
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
+
+    <script type="module">
+      import { ArcGISIdentityManager, Job, JOB_STATUSES } from "https://esm.run/@esri/arcgis-rest-request"
+      import { queryFeatures } from "https://esm.run/@esri/arcgis-rest-feature-service"
+      import { getSelf } from "https://esm.run/@esri/arcgis-rest-portal"
+
+      const aim = await ArcGISIdentityManager.beginOAuth2({
+        clientId: CLIENT_ID,
+        redirectUri: REDIRECT_URL,
+      })
+
+      const access_token = aim.token
+
+      // let session = null
+      let map = null
+      let lastResultUrl = null
+      let lastResultLayer = {
+        id: "results",
+        type: "fill",
+        source: "analysisResults",
+        paint: {
+          "fill-color": [
+            "match",
+            ["get", "Gi_Text"],
+            "Hot Spot with 99% Confidence",
+            "#d62f27",
+            "Hot Spot with 95% Confidence",
+            "#ed7551",
+            "Hot Spot with 90% Confidence",
+            "#fab984",
+            "Not Significant",
+            "#f7f7f2",
+            "Cold Spot with 90% Confidence",
+            "#c0ccbe",
+            "Cold Spot with 95% Confidence",
+            "#849eba",
+            "Cold Spot with 99% Confidence",
+            "#4575b5",
+            "blue",
+          ],
+        },
+      }
+
+      let vtlLayer = {
+        id: "vtlLayer",
+        type: "circle",
+        source: "violations",
+        "source-layer": "DeriveNewLocationsOutput",
+        paint: {
+          "circle-color": "rgb(0,0,0)",
+          "circle-radius": 1.5,
+        },
+      }
+
+      // The redirect URL registered in your OAuth credentials
+      // You may need to modify this path to reflect your actual file structure
+      const url = parent.document.URL.split("/")
+      const redirectUri = "https://local.arcgis.com:5500/feature-analysis/callback.html"
+
+      const basemapEnum = "arcgis/human-geography"
+      const signInLabel = "Sign in"
+
+      const acctErrorMsg =
+        "You can only access the spatial analysis service if you have an access token with privileges to perform spatial analysis. To learn more, go to the <a href='https://developers.arcgis.com/documentation/mapping-apis-and-services/security/'>Security and authentication guide</a>."
+
+      const points =
+        "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/sf_traffic_parking_violations_sa_osapi/FeatureServer/0"
+
+      const pointsVTL =
+        "https://vectortileservices3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/sf_traffic_parking_violations_sa_osapi/VectorTileServer"
+
+      const sampleResults =
+        "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/sf_osapi_driveways_sidewalk_hot_spots/FeatureServer/0"
+
+      const addResults = async sample => {
+        lastResultUrl = sample ? sampleResults : lastResultUrl
+        if (lastResultUrl) {
+          if (map.getSource("analysisResults")) {
+            emptyLayerSource()
+          }
+
+          const results = await queryFeatures({
+            url: lastResultUrl,
+            authentication: access_token,
+            f: "geojson",
+            where: "Gi_Bin<>0",
+            outFields: ["Gi_Text"],
+          })
+
+          map.getSource("analysisResults").setData(results)
+
+          document.getElementById("clearResultsBtn").disabled = false
+          document.getElementById("runAnalysisBtn").disabled = true
+        }
+      }
+
+      const clearResults = () => {
+        if (lastResultLayer) {
+          emptyLayerSource()
+          document.getElementById("clearResultsBtn").disabled = true
+          document.getElementById("resultsCBox").checked = false
+        }
+
+        if (lastResultUrl && access_token) {
+          document.getElementById("runAnalysisBtn").disabled = false
+        }
+      }
+
+      const emptyLayerSource = () => {
+        const empty = {
+          type: "FeatureCollection",
+          features: [],
+        }
+        if (map && map.getSource("analysisResults")) {
+          map.getSource("analysisResults").setData(empty)
+          //map.remove()
+        }
+      }
+
+      const chkBoxDidChange = evt => {
+        evt.currentTarget.checked ? addResults(true) : clearResults()
+      }
+
+      const showAlert = err => {
+        document.getElementById("alert").open = true
+        let msg = acctErrorMsg
+        if (err.message === "Failed: Job failed.") msg = `There was an error processing this request: ${err.message}`
+
+        document.getElementById("alertMsg").innerHTML = msg
+      }
+
+      const runAnalysisBtnWasClicked = evt => {
+        document.getElementById("runAnalysisBtn").hidden = true
+        document.getElementById("progressBar").hidden = false
+        document.getElementById("resultsCBox").disabled = true
+        runAnalysis().then(
+          results => {
+            document.getElementById("runAnalysisBtn").hidden = false
+            document.getElementById("progressBar").hidden = true
+            document.getElementById("resultsCBox").disabled = false
+
+            addResults(results)
+          },
+          err => {
+            console.log(err)
+            document.getElementById("progressBar").hidden = true
+            document.getElementById("runAnalysisBtn").hidden = false
+            document.getElementById("resultsCBox").disabled = false
+            showAlert(err)
+          }
+        )
+      }
+
+      const initMap = withToken => {
+        return new Promise((resolve, reject) => {
+          // create map and add basemap
+          map = new maplibregl.Map({
+            container: "map",
+            style: `https://basemapstyles-api.arcgis.com/arcgis/rest/services/styles/v2/styles/${basemapEnum}?token=${withToken}`,
+            center: [-122.44571685791017, 37.76053707395286],
+            zoom: 12,
+          })
+
+          // add vector tile layer of points
+          map.once("load", () => {
+            map.addSource("violations", {
+              type: "vector",
+              tiles: [`${pointsVTL}/tile/{z}/{y}/{x}.pbf`],
+            })
+
+            map.addLayer(vtlLayer)
+
+            map.addSource("analysisResults", {
+              type: "geojson",
+              data: {
+                type: "FeatureCollection",
+                features: [],
+              },
+            })
+            addResults(true).then(() => {
+              map.addLayer(lastResultLayer)
+            })
+
+            resolve("map initialized")
+          })
+        })
+      }
+
+      const getAnalysisUrl = async withAuth => {
+        const portalSelf = await getSelf({
+          authentication: withAuth,
+        })
+
+        return portalSelf.helperServices.analysis.url
+      }
+
+      const runAnalysis = async () => {
+        const analysisUrl = await getAnalysisUrl(access_token)
+        const operationUrl = `${analysisUrl}/FindHotSpots/submitJob`
+        const params = {
+          analysisLayer: { url: points },
+          shapeType: "Hexagon",
+          outputName: {
+            serviceProperties: {
+              name: `MapLibreGLJS_find_hot_spots_${new Date().getTime()}`,
+            },
+          }, //Outputs results as a hosted feature serivce.
+        }
+
+        const jobReq = await Job.submitJob({
+          url: operationUrl,
+          params: params,
+          authentication: access_token,
+        })
+
+        // listen to the status event to get updates every time the job status is checked.
+        jobReq.on(JOB_STATUSES.Status, jobInfo => {
+          console.log(jobInfo.status)
+        })
+
+        // get all the results, this will start monitoring and trigger events
+        const jobResp = await jobReq.getAllResults()
+
+        // jobResp.aggregatedLayer.value.url
+        return jobResp
+      }
+
+      document.getElementById("runAnalysisBtn").addEventListener("click", runAnalysisBtnWasClicked)
+
+      document.getElementById("clearResultsBtn").addEventListener("click", clearResults)
+
+      document.getElementById("resultsCBox").addEventListener("calciteCheckboxChange", chkBoxDidChange)
+
+      initMap(access_token)
+    </script>
+  </head>
+
+  <body>
+    <div class="app-wrapper">
+      <div class="app-container">
+        <div class="map-container" id="map"></div>
+        <div class="cntrl-container">
+          <calcite-button id="runAnalysisBtn" disabled> Run analysis (credits) </calcite-button>
+
+          <calcite-progress id="progressBar" label="Executing..." text="Executing..." type="indeterminate" hidden></calcite-progress>
+
+          <calcite-button id="clearResultsBtn" appearance="outline" disabled> Clear results </calcite-button>
+
+          <div class="cntrl-chkbox">
+            <calcite-label layout="inline">
+              <calcite-checkbox id="resultsCBox" scale="m" checked></calcite-checkbox>
+              Show pre-calculated analysis results
+            </calcite-label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <calcite-alert id="alert" color="red" placement="top" icon="exclamation-mark-triangle">
+      <div id="alertTitle" slot="title">Alert</div>
+      <div id="alertMsg" slot="message"></div>
+    </calcite-alert>
+    <calcite-modal
+      id="signInModal"
+      aria-labelledby="modal-title"
+      background-color="white"
+      color="blue"
+      disable-close-button
+      disable-escape
+      disable-outside-close
+    >
+      <div slot="header" id="modal-title">Sign in</div>
+      <div slot="content">Log in with your ArcGIS Online account to perform the analysis. Running the analysis will consume credits.</div>
+      <calcite-button id="modalSignInBtn" slot="primary" width="full"></calcite-button>
+    </calcite-modal>
+  </body>
+</html>
