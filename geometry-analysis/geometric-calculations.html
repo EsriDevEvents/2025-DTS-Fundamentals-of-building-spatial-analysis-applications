@@ -1,13 +1,4 @@
-<!--
-
-To run this demo, you need to replace 'YOUR_ACCESS_TOKEN' with an access token from ArcGIS that has the correct privileges.
-
-To get started, sign up for a free ArcGIS Location Platform account or a free trial of ArcGIS Online and create developer credentials.
-
-https://developers.arcgis.com/documentation/security-and-authentication/get-started/
-
--->
-
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -18,24 +9,18 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
     <title>
       Demo App: Spatial analysis > Geometry analysis > Geometry calculations
     </title>
-    <!--
-    IMPORTANT NOTE:
 
-    To find easier-to-read code examples, we recommend you to continue reading the guide.
-  -->
+    <script src="../config.js"></script>
 
     <script
       type="module"
-      src="https://js.arcgis.com/calcite-components/1.0.0-beta.52/calcite.esm.js"
+      src="https://js.arcgis.com/calcite-components/3.0.3/calcite.esm.js"
     ></script>
-    <script
-      nomodule=""
-      src="https://js.arcgis.com/calcite-components/1.0.0-beta.52/calcite.js"
-    ></script>
+
+    <script src="https://js.arcgis.com/4.32"></script>
     <link
       rel="stylesheet"
-      type="text/css"
-      href="https://js.arcgis.com/calcite-components/1.0.0-beta.52/calcite.css"
+      href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
     />
 
     <style>
@@ -95,13 +80,6 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
       }
     </style>
 
-    <link
-      rel="stylesheet"
-      href="https://js.arcgis.com/4.31/esri/themes/light/main.css"
-    />
-    <script src="https://js.arcgis.com/4.31"></script>
-    <script src="./config.js"></script>
-
     <script>
       require([
         "esri/config",
@@ -114,6 +92,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         "esri/geometry/support/webMercatorUtils",
         "esri/geometry/geometryEngine",
         "esri/widgets/Sketch",
+        "esri/core/reactiveUtils",
       ], function (
         esriConfig,
         Map,
@@ -124,7 +103,8 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         SpatialReference,
         webMercatorUtils,
         geometryEngine,
-        Sketch
+        Sketch,
+        reactiveUtils
       ) {
         esriConfig.apiKey = access_token;
 
@@ -207,26 +187,49 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
           }
         };
 
-        sketch.watch("activeTool", (newValue, oldValue, property, object) => {
-          const startDrawing = [
-            "point",
-            "polyline",
-            "polygon",
-            "rectangle",
-            "circle",
-          ].indexOf(newValue);
-          if (sketch.state === "active" && startDrawing !== -1) {
-            resultsLayer.removeAll();
-            const numGraphics = sketch.layer.graphics.length;
-            if (
-              numGraphics == 2 ||
-              (numGraphics == 1 && getSelectOption() === "buffer")
-            ) {
-              removeThirdGeometry(newValue, sketch.activeTool);
-              showAlert("Draw the shape");
+        reactiveUtils.watch(
+          () => sketch.activeTool,
+          (newValue, oldValue, property, object) => {
+            const startDrawing = [
+              "point",
+              "polyline",
+              "polygon",
+              "rectangle",
+              "circle",
+            ].indexOf(newValue);
+            if (sketch.state === "active" && startDrawing !== -1) {
+              resultsLayer.removeAll();
+              const numGraphics = sketch.layer.graphics.length;
+              if (
+                numGraphics == 2 ||
+                (numGraphics == 1 && getSelectOption() === "buffer")
+              ) {
+                removeThirdGeometry(newValue, sketch.activeTool);
+                showAlert("Draw the shape");
+              }
             }
           }
-        });
+        );
+        // sketch.watch("activeTool", (newValue, oldValue, property, object) => {
+        //   const startDrawing = [
+        //     "point",
+        //     "polyline",
+        //     "polygon",
+        //     "rectangle",
+        //     "circle",
+        //   ].indexOf(newValue);
+        //   if (sketch.state === "active" && startDrawing !== -1) {
+        //     resultsLayer.removeAll();
+        //     const numGraphics = sketch.layer.graphics.length;
+        //     if (
+        //       numGraphics == 2 ||
+        //       (numGraphics == 1 && getSelectOption() === "buffer")
+        //     ) {
+        //       removeThirdGeometry(newValue, sketch.activeTool);
+        //       showAlert("Draw the shape");
+        //     }
+        //   }
+        // });
 
         sketch.on("create", (event, a, b, c) => {
           // Remove 3rd geometry, only allow two

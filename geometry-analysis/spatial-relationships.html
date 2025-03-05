@@ -39,6 +39,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         background-color: "white";
         height: calc(100% - 15px);
         padding: 15px;
+        margin-top: 32px;
       }
 
       #relationshipResults > span {
@@ -124,7 +125,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
       href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
     />
     <script src="https://js.arcgis.com/4.32"></script>
-    <script src="config.js"></script>
+    <script src="../config.js"></script>
 
     <script>
       require([
@@ -243,7 +244,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         };
 
         const map = new Map({
-          basemap: "arcgis/topographic", //Basemap styles service
+          basemap: "arcgis/light-gray", //Basemap styles service
         });
 
         const view = new MapView({
@@ -351,7 +352,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         view.ui.add(sketch, "top-right");
         const relationshipDiv = document.getElementById("relationshipResults");
 
-        view.ui.add(relationshipDiv, "bottom-right");
+        view.ui.add(relationshipDiv, "top-right");
         let selectedGraphics = [defaultPolygon, defaultPolyline];
 
         view.when(() => {

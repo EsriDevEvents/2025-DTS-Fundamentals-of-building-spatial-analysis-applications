@@ -28,7 +28,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
       #measurements {
         padding: 4px 8px;
         font-size: 16px;
-        bottom: 15px;
+        top: 32px;
         left: 50%;
         margin-right: -50%;
         transform: translate(-50%, -50%);
@@ -36,10 +36,10 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
     </style>
     <link
       rel="stylesheet"
-      href="https://js.arcgis.com/4.31/esri/themes/light/main.css"
+      href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
     />
-    <script src="https://js.arcgis.com/4.31"></script>
-    <script src="config.js"></script>
+    <script src="https://js.arcgis.com/4.32"></script>
+    <script src="../config.js"></script>
     <script>
       require([
         "esri/config",
@@ -78,7 +78,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
 
         const scalebar = new ScaleBar({
           view: view,
-          unit: "meters",
+          unit: "metric",
         });
 
         view.ui.add(scalebar, "bottom-right");
@@ -215,7 +215,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
             "square-kilometers"
           );
           measurements.innerHTML =
-            "The area of the polygon is  " +
+            "The geodesic area of the polygon is  " +
             area.toFixed(2) +
             "  square kilometers.";
         }
@@ -223,7 +223,9 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         function getLength(line) {
           const length = geometryEngine.geodesicLength(line, "kilometers");
           measurements.innerHTML =
-            "The length of the line is  " + length.toFixed(2) + "  kilometers.";
+            "The geodesic length of the line is  " +
+            length.toFixed(2) +
+            "  kilometers.";
         }
 
         function switchType(geom) {
