@@ -23,6 +23,10 @@
         height: 100%;
         width: 100%;
       }
+
+      .hidden {
+        display: none;
+      }
     </style>
 
     <script type="module">
@@ -159,7 +163,12 @@
             document.getElementById("progressBar").hidden = true
             document.getElementById("resultsCBox").disabled = false
 
-            addResults(results)
+            const rl = document.getElementById("resultLink")
+            rl.href = `https://www.arcgis.com/home/item.html?id=${results.hotSpotsResultLayer.value.itemId}&token=${access_token}`
+            rl.classList.remove("hidden")
+
+            lastResultLayer = results.hotSpotsResultLayer.value.url
+            addResults(false)
           },
           err => {
             console.log(err)
@@ -224,7 +233,7 @@
             serviceProperties: {
               name: `MapLibreGLJS_find_hot_spots_${new Date().getTime()}`,
             },
-          }, //Outputs results as a hosted feature serivce.
+          },
         }
 
         const jobReq = await Job.submitJob({
@@ -235,7 +244,7 @@
 
         // listen to the status event to get updates every time the job status is checked.
         jobReq.on(JOB_STATUSES.Status, jobInfo => {
-          console.log(jobInfo.status)
+          console.log(`${jobInfo.status}`)
         })
 
         // get all the results, this will start monitoring and trigger events
@@ -267,6 +276,21 @@
 
         // document.getElementById("tools").removeAttribute("disabled")
         await initMap(access_token)
+
+        document.getElementById("tools").disabled = false
+
+        const asUrl = await getAnalysisUrl(aim)
+
+        const inputData = {
+          "Analysis service URL": asUrl,
+          "Job name": "FindHotSpots",
+          "Input parameters": {
+            analysisLayer: { url: points },
+            shapeType: "Hexagon",
+          },
+        }
+
+        document.getElementById("infoPane").innerHTML = JSON.stringify(inputData, null, 2)
       })
     </script>
   </head>
@@ -283,17 +307,28 @@
         <calcite-navigation-user id="navUser" slot="user" label="Sign in"></calcite-navigation-user>
       </calcite-navigation>
       <calcite-shell-panel slot="panel-end" id="startPanel">
-        <calcite-panel>
-          <calcite-button id="runAnalysisBtn" disabled> Run analysis </calcite-button>
+        <calcite-panel id="tools" disabled>
+          <div style="margin: 10px">
+            <calcite-label>
+              1. Sign in to your portal
+              <pre id="infoPane"></pre>
+            </calcite-label>
+            <calcite-label>
+              2. Send request to analysis service
+              <calcite-button id="runAnalysisBtn" appearance="solid"> Run analysis </calcite-button>
+              <calcite-link id="resultLink" class="hidden">View result</calcite-link>
+              <calcite-progress id="progressBar" label="Executing..." text="Executing..." type="indeterminate" hidden></calcite-progress>
+            </calcite-label>
 
-          <calcite-progress id="progressBar" label="Executing..." text="Executing..." type="indeterminate" hidden></calcite-progress>
+            <calcite-label>
+              <calcite-button id="clearResultsBtn" appearance="outline"> Clear results </calcite-button>
+            </calcite-label>
 
-          <calcite-button id="clearResultsBtn" appearance="outline" disabled> Clear results </calcite-button>
-
-          <calcite-label layout="inline">
-            <calcite-checkbox id="resultsCBox" scale="m" checked></calcite-checkbox>
-            Show pre-calculated analysis results
-          </calcite-label>
+            <calcite-label layout="inline">
+              <calcite-checkbox id="resultsCBox" scale="m" checked></calcite-checkbox>
+              Show pre-calculated analysis results
+            </calcite-label>
+          </div>
         </calcite-panel>
       </calcite-shell-panel>
 
