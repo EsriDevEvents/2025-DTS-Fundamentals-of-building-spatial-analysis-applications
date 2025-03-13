@@ -2,10 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="initial-scale=1,maximum-scale=1,user-scalable=no"
-    />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <title>ArcGIS Developer guide: Geometry Analysis - Projection</title>
 
     <style>
@@ -28,10 +25,7 @@
       }
     </style>
 
-    <link
-      rel="stylesheet"
-      href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
-    />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css" />
     <script src="https://js.arcgis.com/4.32"></script>
     <script src="../config.js"></script>
 
@@ -45,31 +39,22 @@
         "esri/layers/GeoJSONLayer",
         "esri/geometry/geometryEngine",
         "esri/geometry/projection",
-      ], (
-        esriConfig,
-        MapView,
-        SceneView,
-        Point,
-        SpatialReference,
-        GeoJSONLayer,
-        geometryEngine,
-        projectionEngine
-      ) => {
-        esriConfig.apiKey = access_token;
+      ], (esriConfig, MapView, SceneView, Point, SpatialReference, GeoJSONLayer, geometryEngine, projectionEngine) => {
+        esriConfig.apiKey = access_token
 
-        let spatialReference;
-        let view2D;
+        let spatialReference
+        let view2D
 
         // All app colors
-        const black = [0, 0, 0];
-        const white = [255, 255, 255];
-        const purple = [150, 130, 220];
-        const mildPurple = [100, 70, 170];
-        const graphite = [50, 50, 50];
-        const red = [255, 0, 0];
+        const black = [0, 0, 0]
+        const white = [255, 255, 255]
+        const purple = [150, 130, 220]
+        const mildPurple = [100, 70, 170]
+        const graphite = [50, 50, 50]
+        const red = [255, 0, 0]
 
         function addAlpha(color, alpha) {
-          return [...color, alpha];
+          return [...color, alpha]
         }
 
         // Symbols and renderers constants
@@ -83,7 +68,7 @@
               color: addAlpha(mildPurple, 0.75),
             },
           },
-        };
+        }
 
         const projectionBoundary = {
           symbol: {
@@ -103,7 +88,7 @@
             ymax: 90,
             spatialReference: SpatialReference.WGS84,
           },
-        };
+        }
 
         const bufferSym = {
           type: "simple-fill", // autocasts as new SimpleFillSymbol()
@@ -112,7 +97,7 @@
             color: addAlpha(black, 0.5),
             width: 0.5,
           },
-        };
+        }
 
         const pointSym = {
           type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
@@ -122,19 +107,19 @@
             width: 0.5,
           },
           size: 5,
-        };
+        }
 
         // Spatial reference select
-        const wkidSelect = document.getElementById("wkid");
+        const wkidSelect = document.getElementById("wkid")
 
         // Set spatial reference
-        spatialReference = getSpatialReference(wkidSelect.value);
+        spatialReference = getSpatialReference(wkidSelect.value)
 
         // Update spatial reference
-        wkidSelect.addEventListener("change", (event) => {
-          spatialReference = getSpatialReference(event.target.value);
-          createViewWithSpatialReference();
-        });
+        wkidSelect.addEventListener("change", event => {
+          spatialReference = getSpatialReference(event.target.value)
+          createViewWithSpatialReference()
+        })
 
         // Center for the map
         let center = {
@@ -143,7 +128,7 @@
           spatialReference: {
             wkid: 4326,
           },
-        };
+        }
 
         const view3D = new SceneView({
           container: "sceneDiv",
@@ -176,26 +161,23 @@
           ui: {
             components: [],
           },
-        });
+        })
 
         // Display the layers when the app loads
-        createViewWithSpatialReference();
+        createViewWithSpatialReference()
 
         // Create view with spatial reference
         async function createViewWithSpatialReference() {
           // Load the projection engine
-          await projectionEngine.load();
+          await projectionEngine.load()
 
           // Project the center point
-          center = projectionEngine.project(
-            new Point(center),
-            spatialReference
-          );
+          center = projectionEngine.project(new Point(center), spatialReference)
 
           // Destroy old view
           if (view2D) {
-            view2D.map = null;
-            view2D.destroy();
+            view2D.map = null
+            view2D.destroy()
           }
 
           // Create new view with spatial reference
@@ -216,77 +198,67 @@
             spatialReference: spatialReference,
             center: center,
             scale: 150000000,
-          });
+          })
 
           // Add gray boundary over the 2D projection
-          view2D.graphics.add(projectionBoundary);
+          view2D.graphics.add(projectionBoundary)
 
-          view2D.ui.add(wkidSelect, "top-right");
-          view2D.ui.add(view3D.container, "bottom-right");
+          view2D.ui.add(wkidSelect, "top-right")
+          view2D.ui.add(view3D.container, "top-left")
 
-          view2D.on("pointer-move", (event) => {
-            createBuffer(event, view2D);
-          });
+          view2D.on("pointer-move", event => {
+            createBuffer(event, view2D)
+          })
 
-          view3D.on("pointer-move", (event) => {
-            createBuffer(event, view3D);
-          });
+          view3D.on("pointer-move", event => {
+            createBuffer(event, view3D)
+          })
 
-          view2D.on("click", (event) => {
-            bufferPoint(event.mapPoint);
-          });
+          view2D.on("click", event => {
+            bufferPoint(event.mapPoint)
+          })
 
-          view3D.on("click", (event) => {
-            bufferPoint(event.mapPoint);
-          });
+          view3D.on("click", event => {
+            bufferPoint(event.mapPoint)
+          })
 
           function createBuffer(event, view) {
-            event.stopPropagation();
+            event.stopPropagation()
 
             let point = view.toMap({
               x: event.x,
               y: event.y,
-            });
+            })
 
             if (point) {
-              bufferPoint(point, view);
+              bufferPoint(point, view)
             }
           }
 
           function bufferPoint(point, view) {
             if ([3857, 4326].indexOf(point.spatialReference.wkid) === -1) {
-              point = projectionEngine.project(
-                point,
-                getSpatialReference(4326)
-              );
+              point = projectionEngine.project(point, getSpatialReference(4326))
               if (!point) {
                 // console.warn("We couldn't project -> ", {point})
-                return;
+                return
               }
             }
 
-            point.hasZ = false;
-            point.z = undefined;
+            point.hasZ = false
+            point.z = undefined
 
-            const buffer = geometryEngine.geodesicBuffer(
-              point,
-              1000,
-              "kilometers"
-            );
+            const buffer = geometryEngine.geodesicBuffer(point, 1000, "kilometers")
 
             if (point && buffer) {
               // Avoid removing the map projection boundary
-              view2D.graphics.removeMany([
-                view2D.graphics.getItemAt(1),
-                view2D.graphics.getItemAt(2),
-              ]);
+              view2D.graphics.removeMany([view2D.graphics.getItemAt(1), view2D.graphics.getItemAt(2)])
 
-              view3D.graphics.removeAll();
+              view3D.graphics.removeAll()
 
               const bufferGraphic = {
                 geometry: buffer,
                 symbol: bufferSym,
-              };
+              }
 
               view2D.graphics.addMany([
                 bufferGraphic,
@@ -294,7 +266,7 @@
                   geometry: point,
                   symbol: pointSym,
                 },
-              ]);
+              ])
 
               view3D.graphics.addMany([
                 {
@@ -305,7 +277,7 @@
                   },
                 },
                 bufferGraphic,
-              ]);
+              ])
 
               if (view && view.type === "2d") {
                 //zoom 3D
@@ -316,7 +288,7 @@
                     z: 15294210, // elevation in meters
                   },
                   heading: 0,
-                });
+                })
               }
             }
           }
@@ -325,31 +297,19 @@
         function getSpatialReference(wkid) {
           return new SpatialReference({
             wkid: wkid,
-          });
+          })
         }
-      });
+      })
     </script>
   </head>
   <body>
+    <header><h1>Geometry projections</h1></header>
     <div id="mapDiv"></div>
     <div id="sceneDiv"></div>
-    <select
-      id="wkid"
-      class="esri-widget esri-select"
-    >
-      <option
-        value="3857"
-        disabled
-      >
-        Select a projection
-      </option>
+    <select id="wkid" class="esri-widget esri-select">
+      <option value="3857" disabled>Select a projection</option>
       <optgroup label="Equidistant: maintains length">
-        <option
-          value="4326"
-          selected
-        >
-          WGS84 (GCS) -> pseudo Plate Carrée (Cylindrical)
-        </option>
+        <option value="4326" selected>WGS84 (GCS) -> pseudo Plate Carrée (Cylindrical)</option>
         <option value="54028">World Cassini (Cylindrical)</option>
         <option value="54027">World Equidistant conic (Conic)</option>
       </optgroup>
@@ -364,9 +324,7 @@
         <option value="102034">North Pole Gnomonic (Azimuthal)</option>
       </optgroup>
       <optgroup label="Compromise: distorts all">
-        <option value="3857">
-          Web Mercator Auxiliary Sphere (Cylindrical)
-        </option>
+        <option value="3857">Web Mercator Auxiliary Sphere (Cylindrical)</option>
         <option value="54016">World Gall Stereographic (Cylindrical)</option>
         <option value="54042">Wolrd Winkel Tripel (Pseudoazimuthal)</option>
         <option value="54050">World Fuller / Dymaxion map (Polyhedral)</option>

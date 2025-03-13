@@ -11,10 +11,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="initial-scale=1,maximum-scale=1,user-scalable=no"
-    />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <title>Get length and area</title>
     <style>
       html,
@@ -28,16 +25,13 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
       #measurements {
         padding: 4px 8px;
         font-size: 16px;
-        top: 32px;
+        top: 100px;
         left: 50%;
         margin-right: -50%;
         transform: translate(-50%, -50%);
       }
     </style>
-    <link
-      rel="stylesheet"
-      href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
-    />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css" />
     <script src="https://js.arcgis.com/4.32"></script>
     <script src="../config.js"></script>
     <script>
@@ -50,21 +44,12 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         "esri/Graphic",
         "esri/layers/GraphicsLayer",
         "esri/geometry/geometryEngine",
-      ], (
-        esriConfig,
-        Map,
-        MapView,
-        ScaleBar,
-        Sketch,
-        Graphic,
-        GraphicsLayer,
-        geometryEngine
-      ) => {
-        esriConfig.apiKey = access_token;
+      ], (esriConfig, Map, MapView, ScaleBar, Sketch, Graphic, GraphicsLayer, geometryEngine) => {
+        esriConfig.apiKey = access_token
 
         const map = new Map({
           basemap: "arcgis/navigation", // Basemap styles service
-        });
+        })
 
         const view = new MapView({
           container: "viewDiv",
@@ -74,17 +59,17 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
           constraints: {
             snapToZoom: false,
           },
-        });
+        })
 
         const scalebar = new ScaleBar({
           view: view,
           unit: "metric",
-        });
+        })
 
-        view.ui.add(scalebar, "bottom-right");
+        view.ui.add(scalebar, "bottom-right")
 
-        const graphicsLayerSketch = new GraphicsLayer();
-        map.add(graphicsLayerSketch);
+        const graphicsLayerSketch = new GraphicsLayer()
+        map.add(graphicsLayerSketch)
 
         const sketch = new Sketch({
           layer: graphicsLayerSketch,
@@ -103,12 +88,12 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
             settingsMenu: false,
             undoRedoMenu: false,
           },
-        });
+        })
 
-        view.ui.add(sketch, "top-right");
+        view.ui.add(sketch, "top-right")
 
-        const measurements = document.getElementById("measurements");
-        view.ui.add(measurements, "manual");
+        const measurements = document.getElementById("measurements")
+        view.ui.add(measurements, "manual")
 
         const polygon = {
           type: "polygon",
@@ -167,7 +152,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
           spatialReference: {
             wkid: 102100,
           },
-        };
+        }
         const polygonGraphic = new Graphic({
           geometry: polygon,
           symbol: {
@@ -176,79 +161,64 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
               width: 1.5,
             },
           },
-        });
+        })
 
-        graphicsLayerSketch.add(polygonGraphic);
+        graphicsLayerSketch.add(polygonGraphic)
 
         view.when(() => {
-          sketch.update(polygonGraphic);
-          getArea(polygonGraphic.geometry);
-        });
+          sketch.update(polygonGraphic)
+          getArea(polygonGraphic.geometry)
+        })
 
-        sketch.on(["update"], (e) => {
-          const geometry = e.graphics[0].geometry;
+        sketch.on(["update"], e => {
+          const geometry = e.graphics[0].geometry
 
           if (e.state === "start") {
-            switchType(geometry);
+            switchType(geometry)
           }
 
           if (e.state === "complete") {
-            graphicsLayerSketch.remove(
-              graphicsLayerSketch.graphics.getItemAt(0)
-            );
-            measurements.innerHTML = null;
+            graphicsLayerSketch.remove(graphicsLayerSketch.graphics.getItemAt(0))
+            measurements.innerHTML = null
           }
 
           if (
             e.toolEventInfo &&
-            (e.toolEventInfo.type === "scale-stop" ||
-              e.toolEventInfo.type === "reshape-stop" ||
-              e.toolEventInfo.type === "move-stop")
+            (e.toolEventInfo.type === "scale-stop" || e.toolEventInfo.type === "reshape-stop" || e.toolEventInfo.type === "move-stop")
           ) {
-            switchType(geometry);
+            switchType(geometry)
           }
-        });
+        })
 
         function getArea(polygon) {
-          const area = geometryEngine.geodesicArea(
-            polygon,
-            "square-kilometers"
-          );
-          measurements.innerHTML =
-            "The geodesic area of the polygon is  " +
-            area.toFixed(2) +
-            "  square kilometers.";
+          const area = geometryEngine.geodesicArea(polygon, "square-kilometers")
+          measurements.innerHTML = "The geodesic area of the polygon is  " + area.toFixed(2) + "  square kilometers."
         }
 
         function getLength(line) {
-          const length = geometryEngine.geodesicLength(line, "kilometers");
-          measurements.innerHTML =
-            "The geodesic length of the line is  " +
-            length.toFixed(2) +
-            "  kilometers.";
+          const length = geometryEngine.geodesicLength(line, "kilometers")
+          measurements.innerHTML = "The geodesic length of the line is  " + length.toFixed(2) + "  kilometers."
         }
 
         function switchType(geom) {
           switch (geom.type) {
             case "polygon":
-              getArea(geom);
-              break;
+              getArea(geom)
+              break
             case "polyline":
-              getLength(geom);
-              break;
+              getLength(geom)
+              break
             default:
-              console.log("No value found");
+              console.log("No value found")
           }
         }
-      });
+      })
     </script>
   </head>
   <body>
+    <header><h1>Length and area</h1></header>
     <div id="viewDiv">
-      <div
-        id="measurements"
-        class="esri-widget"
-      ></div>
+      <div id="measurements" class="esri-widget"></div>
     </div>
   </body>
 </html>

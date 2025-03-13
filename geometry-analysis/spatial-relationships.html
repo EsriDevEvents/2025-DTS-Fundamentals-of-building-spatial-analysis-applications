@@ -11,13 +11,8 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="initial-scale=1, maximum-scale=1, user-scalable=no"
-    />
-    <title>
-      ArcGIS Developer guide: Geometry Analysis - Spatial Relationships
-    </title>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>ArcGIS Developer guide: Geometry Analysis - Spatial Relationships</title>
     <style>
       html,
       body,
@@ -120,10 +115,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
       }
     </style>
 
-    <link
-      rel="stylesheet"
-      href="https://js.arcgis.com/4.32/esri/themes/light/main.css"
-    />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css" />
     <script src="https://js.arcgis.com/4.32"></script>
     <script src="../config.js"></script>
 
@@ -137,19 +129,10 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
         "esri/layers/GraphicsLayer",
         "esri/widgets/Sketch",
         "esri/geometry/geometryEngine",
-      ], (
-        esriConfig,
-        Map,
-        MapView,
-        Graphic,
-        webMercatorUtils,
-        GraphicsLayer,
-        Sketch,
-        geometryEngine
-      ) => {
-        esriConfig.apiKey = access_token;
+      ], (esriConfig, Map, MapView, Graphic, webMercatorUtils, GraphicsLayer, Sketch, geometryEngine) => {
+        esriConfig.apiKey = access_token
 
-        let geometry1, geometry2;
+        let geometry1, geometry2
 
         // List of spatial relationship operations and applicable operations
         const operations = {
@@ -173,26 +156,18 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
             notApplicableOperations: [],
           },
           contains: {
-            notApplicableOperations: [
-              "point-polyline",
-              "point-polygon",
-              "polyline-polygon",
-            ],
+            notApplicableOperations: ["point-polyline", "point-polygon", "polyline-polygon"],
           },
           disjoint: {
             notApplicableOperations: [],
           },
           within: {
-            notApplicableOperations: [
-              "polyline-point",
-              "polygon-point",
-              "polygon-polyline",
-            ],
+            notApplicableOperations: ["polyline-point", "polygon-point", "polygon-polyline"],
           },
           touches: {
             notApplicableOperations: ["point-point"],
           },
-        };
+        }
 
         // All symbols we will use to differentiate the geometries
         const geometrySymbols = {
@@ -241,11 +216,11 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
               },
             },
           },
-        };
+        }
 
         const map = new Map({
           basemap: "arcgis/light-gray", //Basemap styles service
-        });
+        })
 
         const view = new MapView({
           map: map,
@@ -256,10 +231,10 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
             maxZoom: 13,
             minZoom: 11,
           },
-        });
+        })
 
-        const graphicsLayer = new GraphicsLayer();
-        map.add(graphicsLayer);
+        const graphicsLayer = new GraphicsLayer()
+        map.add(graphicsLayer)
 
         // Create a line geometry
         defaultPolygonGeometry = webMercatorUtils.geographicToWebMercator({
@@ -276,7 +251,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
           spatialReference: {
             wkid: 4326,
           },
-        });
+        })
 
         const defaultPolygon = new Graphic({
           geometry: defaultPolygonGeometry,
@@ -284,8 +259,8 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
           attributes: {
             style: "solid",
           },
-        });
-        graphicsLayer.add(defaultPolygon);
+        })
+        graphicsLayer.add(defaultPolygon)
 
         // Create a polygon geometry
         const polylineGeometry = webMercatorUtils.geographicToWebMercator({
@@ -300,7 +275,7 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
           spatialReference: {
             wkid: 4326,
           },
-        });
+        })
 
         const defaultPolyline = new Graphic({
           geometry: polylineGeometry,
@@ -308,9 +283,9 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
           attributes: {
             style: "dashed", // Used to alternate Graphic styles
           },
-        });
+        })
 
-        graphicsLayer.add(defaultPolyline);
+        graphicsLayer.add(defaultPolyline)
 
         // Create a new instance of sketchViewModel
         const sketch = new Sketch({
@@ -333,98 +308,85 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
             settingsMenu: false,
             undoRedoMenu: false,
           },
-        });
+        })
 
         const dragOutlineSymbol = {
           style: "solid",
           color: [0, 0, 0, 1],
           width: "0.25px",
-        };
+        }
 
-        sketch.viewModel.watch("activeTool", (tool) => {
+        sketch.viewModel.watch("activeTool", tool => {
           // Remove default box outline (orange) in the active geometry
           if (tool === "transform") {
-            sketch.viewModel.activeComponent._backgroundGraphic.symbol.outline =
-              dragOutlineSymbol;
+            sketch.viewModel.activeComponent._backgroundGraphic.symbol.outline = dragOutlineSymbol
           }
-        });
+        })
 
-        view.ui.add(sketch, "top-right");
-        const relationshipDiv = document.getElementById("relationshipResults");
+        view.ui.add(sketch, "top-right")
+        const relationshipDiv = document.getElementById("relationshipResults")
 
-        view.ui.add(relationshipDiv, "top-right");
-        let selectedGraphics = [defaultPolygon, defaultPolyline];
+        view.ui.add(relationshipDiv, "top-right")
+        let selectedGraphics = [defaultPolygon, defaultPolyline]
 
         view.when(() => {
-          sketch.update(defaultPolyline).then(onGraphicUpdate);
-        });
+          sketch.update(defaultPolyline).then(onGraphicUpdate)
+        })
 
-        const getGraphicsProps = (prop) => [
-          selectedGraphics[0][prop],
-          selectedGraphics[1][prop],
-        ];
+        const getGraphicsProps = prop => [selectedGraphics[0][prop], selectedGraphics[1][prop]]
 
         const removeThirdGeometry = (state, tool) => {
-          const numGraphics = selectedGraphics.length;
+          const numGraphics = selectedGraphics.length
           if (tool === "point" && numGraphics === 3) {
-            const arrVal = selectedGraphics.shift();
-            graphicsLayer.remove(arrVal);
+            const arrVal = selectedGraphics.shift()
+            graphicsLayer.remove(arrVal)
           } else if (state === "start" && numGraphics === 2) {
-            const arrVal = selectedGraphics.shift();
-            graphicsLayer.remove(arrVal);
+            const arrVal = selectedGraphics.shift()
+            graphicsLayer.remove(arrVal)
           }
-        };
+        }
 
-        sketch.on("create", (event) => {
-          selectedGraphics = graphicsLayer.graphics.toArray();
+        sketch.on("create", event => {
+          selectedGraphics = graphicsLayer.graphics.toArray()
 
           if (["start", "complete"].indexOf(event.state) !== -1) {
-            removeThirdGeometry(event.state, event.tool);
+            removeThirdGeometry(event.state, event.tool)
           }
           if (event.state === "complete") {
-            if (
-              selectedGraphics[0].attributes &&
-              selectedGraphics[0].attributes.style === "solid"
-            ) {
+            if (selectedGraphics[0].attributes && selectedGraphics[0].attributes.style === "solid") {
               event.graphic.attributes = {
                 style: "dashed",
-              };
+              }
             } else {
               event.graphic.attributes = {
                 style: "solid",
-              };
+              }
             }
 
-            if (
-              selectedGraphics[0].attributes.style === "solid" &&
-              selectedGraphics.length > 1
-            ) {
-              event.graphic.symbol =
-                geometrySymbols[event.graphic.geometry.type].dashed;
+            if (selectedGraphics[0].attributes.style === "solid" && selectedGraphics.length > 1) {
+              event.graphic.symbol = geometrySymbols[event.graphic.geometry.type].dashed
             } else {
-              event.graphic.symbol =
-                geometrySymbols[event.graphic.geometry.type].solid;
+              event.graphic.symbol = geometrySymbols[event.graphic.geometry.type].solid
             }
 
-            sketch.update(event.graphic);
+            sketch.update(event.graphic)
 
-            onGraphicUpdate(event);
+            onGraphicUpdate(event)
           }
-        });
+        })
 
-        sketch.on(["update", "undo", "redo"], onGraphicUpdate);
+        sketch.on(["update", "undo", "redo"], onGraphicUpdate)
 
         function onGraphicUpdate(event) {
           if (event && event.tool === "transform" && event.state === "active") {
             // Remove default box outline (orange) while dragging geometry
-            sketch.viewModel.activeComponent._backgroundGraphic.symbol.outline =
-              dragOutlineSymbol;
+            sketch.viewModel.activeComponent._backgroundGraphic.symbol.outline = dragOutlineSymbol
           }
-          const selectedGraphics = graphicsLayer.graphics.toArray();
+          const selectedGraphics = graphicsLayer.graphics.toArray()
 
           if (selectedGraphics.length === 2) {
-            [geometry1, geometry2] = getGraphicsProps("geometry");
-            [attr1, attr2] = getGraphicsProps("attributes");
+            ;[geometry1, geometry2] = getGraphicsProps("geometry")
+            ;[attr1, attr2] = getGraphicsProps("attributes")
             const graphics = [
               {
                 geometry: geometry1,
@@ -434,85 +396,66 @@ https://developers.arcgis.com/documentation/security-and-authentication/get-star
                 geometry: geometry2,
                 attributes: attr2,
               },
-            ];
+            ]
 
             for (var operation in operations) {
-              const notApplicableOperations =
-                operations[operation].notApplicableOperations;
+              const notApplicableOperations = operations[operation].notApplicableOperations
 
-              if (
-                notApplicableOperations.indexOf(
-                  `${geometry1.type}-${geometry2.type}`
-                ) === -1
-              ) {
+              if (notApplicableOperations.indexOf(`${geometry1.type}-${geometry2.type}`) === -1) {
                 // If the permited
-                const result = geometryEngine[operation](geometry1, geometry2);
-                document.getElementById(operation).innerHTML = formatStr(
-                  result,
-                  operation,
-                  graphics
-                );
+                const result = geometryEngine[operation](geometry1, geometry2)
+                document.getElementById(operation).innerHTML = formatStr(result, operation, graphics)
               } else {
-                document.getElementById(operation).innerHTML = formatStr(
-                  "n.a.",
-                  operation,
-                  graphics
-                );
+                document.getElementById(operation).innerHTML = formatStr("n.a.", operation, graphics)
               }
             }
           } else {
-            const selectedGraphics = graphicsLayer.graphics.toArray();
-            const numGraphics = selectedGraphics.length;
+            const selectedGraphics = graphicsLayer.graphics.toArray()
+            const numGraphics = selectedGraphics.length
 
             for (var operation in operations) {
-              document.getElementById(operation).innerHTML = formatStr(
-                -1,
-                operation,
-                selectedGraphics
-              );
+              document.getElementById(operation).innerHTML = formatStr(-1, operation, selectedGraphics)
             }
           }
         }
 
         function formatStr(result, operation, selectedGraphics) {
-          const numGraphics = selectedGraphics.length;
+          const numGraphics = selectedGraphics.length
 
-          let str = null;
+          let str = null
 
           if (numGraphics > 0) {
-            const style1 = selectedGraphics[0].attributes.style;
-            const type1 = selectedGraphics[0].geometry.type;
+            const style1 = selectedGraphics[0].attributes.style
+            const type1 = selectedGraphics[0].geometry.type
 
             if (numGraphics === 2) {
-              const style2 = selectedGraphics[1].attributes.style;
-              const type2 = selectedGraphics[1].geometry.type;
+              const style2 = selectedGraphics[1].attributes.style
+              const type2 = selectedGraphics[1].geometry.type
 
               if (result === true) {
-                str = `<i class="${type1} ${style1}"></i> <b>${operation} </b> <i class="${type2} ${style2}"></i> <b>${result}</b>`;
+                str = `<i class="${type1} ${style1}"></i> <b>${operation} </b> <i class="${type2} ${style2}"></i> <b>${result}</b>`
               } else if (result === false) {
-                str = `<i class="${type1} ${style1}"></i> ${operation}  <i class="${type2} ${style2}"></i>  ${result}`;
+                str = `<i class="${type1} ${style1}"></i> ${operation}  <i class="${type2} ${style2}"></i>  ${result}`
               } else {
-                str = `<span class="na"><i class="${type1} ${style1}"></i> ${operation}  <i class="${type2} ${style2}"></i>  n.a.</span>`;
+                str = `<span class="na"><i class="${type1} ${style1}"></i> ${operation}  <i class="${type2} ${style2}"></i>  n.a.</span>`
               }
             } else if (numGraphics === 1) {
-              str = `<i class="${type1} ${style1}"></i> ${operation} `;
+              str = `<i class="${type1} ${style1}"></i> ${operation} `
             }
           } else {
-            str = ` ${operation} `;
+            str = ` ${operation} `
           }
 
-          return str;
+          return str
         }
-      });
+      })
     </script>
   </head>
 
   <body>
+    <header><h2>Spatial relationships - Determine the topological association between two geometries</h2></header>
     <div id="viewDiv"></div>
-    <div
-      id="relationshipResults"
-      class="esri-widget"
-    >
+    <div id="relationshipResults" class="esri-widget">
       <div class="title">Spatial relationship</div>
       <span id="contains"></span>
       <span id="crosses"></span>
